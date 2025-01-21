@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Loader from '../Loader/Loader';
 import { useInView } from 'react-intersection-observer';
 import { IShader, TTag } from 'interfaces/interfaces';
+import useScrollActivity from 'hooks/useScrollActivity';
 
 interface IProps {
     props: IShader & { canvaIdx: number; };
@@ -9,41 +10,49 @@ interface IProps {
 
 const Canva = ({ props }: IProps) => {
     const { frag, vert, canvaIdx, tags } = props;
-    const canvaRef = useRef<HTMLCanvasElement>(null);
+    const isScrolling = useScrollActivity();
     const { ref, inView } = useInView({
         triggerOnce: true,
         fallbackInView: true,
     });
 
+    const canvaRef = useRef<HTMLCanvasElement>(null);
+
+    const [gl, setGl] = useState<WebGLRenderingContext | null>(null);
+    const [program, setProgram] = useState<WebGLProgram | null>(null);
+    const animationRef = useRef<number | null>(null);
+    const [scrollPosition, setScrollPosition] = useState(0);
+    const [scrollDirection, setScrollDirection] = useState('up');
     const [fragSource, setFragSource] = useState('');
     const [vertSource, setVertSource] = useState('');
     const [isCopied, setIsCopied] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [startTime,] = useState(Date.now());
 
-    const createShader = (gl, type, source) => {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error('Shader compile error:', gl.getShaderInfoLog(shader));
-            gl.deleteShader(shader);
+    const createShader = (tmpGl, type, source) => {
+        const shader = tmpGl.createShader(type);
+        tmpGl.shaderSource(shader, source);
+        tmpGl.compileShader(shader);
+        if (!tmpGl.getShaderParameter(shader, tmpGl.COMPILE_STATUS)) {
+            console.error('Shader compile error:', tmpGl.getShaderInfoLog(shader));
+            tmpGl.deleteShader(shader);
             return null;
         }
         return shader;
     }
 
-    const createProgram = (gl, vertexSource, fragmentSource) => {
-        const program = gl.createProgram();
-        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
-        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.error('Program link error:', gl.getProgramInfoLog(program));
+    const createProgram = (tmpGl, vertexSource, fragmentSource) => {
+        const program = tmpGl.createProgram();
+        const vertexShader = createShader(tmpGl, tmpGl.VERTEX_SHADER, vertexSource);
+        const fragmentShader = createShader(tmpGl, tmpGl.FRAGMENT_SHADER, fragmentSource);
+        tmpGl.attachShader(program, vertexShader);
+        tmpGl.attachShader(program, fragmentShader);
+        tmpGl.linkProgram(program);
+        if (!tmpGl.getProgramParameter(program, tmpGl.LINK_STATUS)) {
+            console.error('Program link error:', tmpGl.getProgramInfoLog(program));
             return null;
         }
-        return { program, vertexShader, fragmentShader };
+        return { tmpProgram: program, vertexShader, fragmentShader };
     }
 
     // Fonction pour initialiser un canvas avec un shader donné
@@ -54,57 +63,37 @@ const Canva = ({ props }: IProps) => {
         setVertSource(vertexSource);
 
         const canvas: HTMLCanvasElement = canvaRef.current;
-        const gl = canvas.getContext('webgl');
+        const tmpGl = canvas.getContext('webgl');
 
-        const { program, vertexShader, fragmentShader } = createProgram(gl, vertexSource, fragmentSource);
-        gl.useProgram(program);
+        const { tmpProgram } = createProgram(tmpGl, vertexSource, fragmentSource);
+        setProgram(tmpProgram);
+        tmpGl.useProgram(tmpProgram);
 
-        const positionLocation = gl.getAttribLocation(program, "a_position");
-        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+        const positionLocation = tmpGl.getAttribLocation(tmpProgram, "a_position");
+        const resolutionLocation = tmpGl.getUniformLocation(tmpProgram, "u_resolution");
+        const timeLocation = tmpGl.getUniformLocation(tmpProgram, 'u_time');
+        const scrollLocation = tmpGl.getUniformLocation(tmpProgram, 'u_scroll');
 
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        const buffer = tmpGl.createBuffer();
+        tmpGl.bindBuffer(tmpGl.ARRAY_BUFFER, buffer);
+        tmpGl.bufferData(tmpGl.ARRAY_BUFFER, new Float32Array([
             -1, -1,
             1, -1,
             -1, 1,
             -1, 1,
             1, -1,
             1, 1
-        ]), gl.STATIC_DRAW);
+        ]), tmpGl.STATIC_DRAW);
 
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+        tmpGl.viewport(0, 0, canvas.width, canvas.height);
+        tmpGl.uniform2f(resolutionLocation, canvas.width, canvas.height);
 
-        gl.enableVertexAttribArray(positionLocation);
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        tmpGl.enableVertexAttribArray(positionLocation);
+        tmpGl.vertexAttribPointer(positionLocation, 2, tmpGl.FLOAT, false, 0, 0);
 
-        const timeLocation = gl.getUniformLocation(program, 'u_time');
-        let startTime = Date.now();
-        const render = () => {
-            const currentTime = (Date.now() - startTime) / 1000;
-            gl.uniform1f(timeLocation, currentTime);
-
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-            const raf = requestAnimationFrame(render);
-
-            return () => {
-                cancelAnimationFrame(raf);
-            }
-        };
-
-        render();
-        setIsLoaded(true);
-
-        return () => {
-            gl.deleteProgram(program);
-            gl.deleteShader(vertexShader);
-            gl.deleteShader(fragmentShader);
-            gl.deleteBuffer(buffer);
-        }
+        tmpGl.uniform1f(timeLocation, 0);
+        tmpGl.uniform1f(scrollLocation, scrollDirection === 'up' ? 1.0 : -1.0);
+        setGl(tmpGl);
     }
 
     const handleCopy = async (content) => {
@@ -120,13 +109,73 @@ const Canva = ({ props }: IProps) => {
         }
     };
 
+    const render = useCallback(() => {
+        const currentTime = (Date.now() - startTime) / 1000;
+        const timeLocation = gl.getUniformLocation(program, 'u_time');
+        const scrollLocation = gl.getUniformLocation(program, 'u_scroll');
+        const scrollDirectionLocation = gl.getUniformLocation(program, 'u_scroll_direction');
+
+        gl.uniform1f(timeLocation, currentTime);
+        gl.uniform1f(scrollLocation, scrollPosition);
+        gl.uniform1f(scrollDirectionLocation, scrollDirection === 'up' ? 1.0 : -1.0);
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        requestAnimationFrame(render);
+    }, [scrollPosition, scrollDirection, gl, program, startTime]);
+
+    useEffect(() => {
+        if (gl && program) {
+            animationRef.current = requestAnimationFrame(render);
+            return () => {
+                if (animationRef.current) {
+                    cancelAnimationFrame(animationRef.current);
+                }
+            };
+        }
+    }, [gl, program, render]);
+
+    useEffect(() => {
+        if (gl && program) {
+            setIsLoaded(true);
+        }
+    }, [gl, program]);
+
     useEffect(() => {
         if (!!canvaRef.current) {
             setTimeout(() => {
                 setupCanvas();
             }, canvaIdx * 200)
         }
-    }, [canvaRef.current, inView])
+    }, [canvaRef.current, inView]);
+
+
+    useEffect(() => {
+        let lastScrollPosition = 0;
+
+        const handleScroll = () => {
+            const currentScrollPosition = window.scrollY;
+
+            // Determine direction
+            const direction =
+                currentScrollPosition > lastScrollPosition ? 'down' : 'up';
+
+            setScrollPosition(currentScrollPosition);
+            setScrollDirection(direction);
+
+            // Update last scroll position
+            lastScrollPosition = currentScrollPosition;
+        };
+
+        window.addEventListener('scroll', handleScroll);
+
+        // Cleanup event listener on unmount
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
     return (
         <div className="relative size-full" ref={ref}>

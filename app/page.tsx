@@ -67,7 +67,7 @@ export default function Page() {
 				<h1 className='text-xl font-bold'>Shaders collection</h1>
 				<p>Feel free to use them anywhere, anytime.</p>
 				<p>If you use them, I would love to see how and where ! Please send me a message on <a href={"https://www.linkedin.com/in/maelatzmal/"}>linkedin</a> with your project <span className='fa fa-heart'></span></p>
-				<p>Made over time by&nbsp;<a href={"https://www.linkedin.com/in/maelatzmal/"}>Maël, a french developer, updated as soon as I create a new one (last update {!!list && new Date(list[0].createdAt).toLocaleDateString()})</a></p>
+				<p>Made over time by&nbsp;<a href={"https://www.linkedin.com/in/maelatzmal/"}>Maël, a french developer</a>, updated as soon as I create a new one (last update {!!list && new Date(list[0].createdAt).toLocaleDateString()})</p>
 			</div>
 
 			{/* <div className={`withBorder mt-4 w-full rounded-md px-6 py-4 shadow`}>
