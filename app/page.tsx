@@ -70,7 +70,7 @@ export default function Page() {
 				<p>Made over time by&nbsp;<a href={"https://www.linkedin.com/in/maelatzmal/"}>Maël, a french developer, updated as soon as I create a new one (last update {!!list && new Date(list[0].createdAt).toLocaleDateString()})</a></p>
 			</div>
 
-			<div className={`withBorder mt-4 w-full rounded-md px-6 py-4 shadow`}>
+			{/* <div className={`withBorder mt-4 w-full rounded-md px-6 py-4 shadow`}>
 				<input
 					type="text"
 					value={searchItem}
@@ -78,7 +78,7 @@ export default function Page() {
 					placeholder='Type to search'
 					className='withBorder bg-dark rounded-md px-2 py-1'
 				/>
-			</div>
+			</div> */}
 
 			<div className={`withBorder mt-4 w-full rounded-md p-4 shadow`}>
 				<div className='flex gap-2 px-2'>
