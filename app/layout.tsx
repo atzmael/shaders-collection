@@ -1,4 +1,5 @@
 import '@/global.css'
+import { Suspense } from 'react'
 
 export const metadata = {
   title: 'Shaders collection',
@@ -14,8 +15,9 @@ export default function RootLayout({ children }) {
       */}
       <head />
       <body className='dark-mode'>
-        {/* To avoid FOUT with styled-components wrap Layout with StyledComponentsRegistry https://beta.nextjs.org/docs/styling/css-in-js#styled-components */}
-        {children}
+        <Suspense>
+          {children}
+        </Suspense>
       </body>
     </html>
   )
