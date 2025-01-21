@@ -3,19 +3,9 @@
 import Canva from '@/components/Canvas/Canva';
 import AddShader from '@/components/Form/AddShader/AddShader';
 import ThemeToggle from '@/components/ThemeToggle/ThemeToggle';
+import { IShader, tags, TTag } from 'interfaces/interfaces';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react'
-
-export const tags = ['all', 'interactive', 'animated', 'fragment', 'vertex'] as const;
-export type TTag = typeof tags[number];
-
-export interface IShader {
-	name: string;
-	frag: string;
-	vert: string;
-	createdAt: string;
-	tags?: TTag[];
-}
 
 export default function Page() {
 	const router = useRouter();

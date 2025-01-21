@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Loader from '../Loader/Loader';
 import { useInView } from 'react-intersection-observer';
-import { IShader, TTag } from '@/page';
+import { IShader, TTag } from 'interfaces/interfaces';
 
 interface IProps {
     props: IShader & { canvaIdx: number; };
