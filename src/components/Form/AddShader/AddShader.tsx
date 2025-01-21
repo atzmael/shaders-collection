@@ -1,4 +1,4 @@
-import { tags, TTag } from "@/page";
+import { tags, TTag } from "interfaces/interfaces";
 import { ChangeEvent, Dispatch, useState } from "react";
 
 interface IProps {
