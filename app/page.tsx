@@ -1,82 +1,138 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
+import Canva from '@/components/Canvas/Canva';
+import AddShader from '@/components/Form/AddShader/AddShader';
+import ThemeToggle from '@/components/ThemeToggle/ThemeToggle';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react'
 
-const Logo = dynamic(() => import('@/components/canvas/Examples').then((mod) => mod.Logo), { ssr: false })
-const Dog = dynamic(() => import('@/components/canvas/Examples').then((mod) => mod.Dog), { ssr: false })
-const Duck = dynamic(() => import('@/components/canvas/Examples').then((mod) => mod.Duck), { ssr: false })
-const View = dynamic(() => import('@/components/canvas/View').then((mod) => mod.View), {
-  ssr: false,
-  loading: () => (
-    <div className='flex h-96 w-full flex-col items-center justify-center'>
-      <svg className='-ml-1 mr-3 h-5 w-5 animate-spin text-black' fill='none' viewBox='0 0 24 24'>
-        <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-        <path
-          className='opacity-75'
-          fill='currentColor'
-          d='M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-        />
-      </svg>
-    </div>
-  ),
-})
-const Common = dynamic(() => import('@/components/canvas/View').then((mod) => mod.Common), { ssr: false })
+export const tags = ['all', 'interactive', 'animated', 'fragment', 'vertex'] as const;
+export type TTag = typeof tags[number];
+
+export interface IShader {
+	name: string;
+	frag: string;
+	vert: string;
+	createdAt: string;
+	tags?: TTag[];
+}
 
 export default function Page() {
-  return (
-    <>
-      <div className='mx-auto flex w-full flex-col flex-wrap items-center md:flex-row  lg:w-4/5'>
-        {/* jumbo */}
-        <div className='flex w-full flex-col items-start justify-center p-12 text-center md:w-2/5 md:text-left'>
-          <p className='w-full uppercase'>Next + React Three Fiber</p>
-          <h1 className='my-4 text-5xl font-bold leading-tight'>Next 3D Starter</h1>
-          <p className='mb-8 text-2xl leading-normal'>A minimalist starter for React, React-three-fiber and Threejs.</p>
-        </div>
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const [selectedItem, setSelectedItem] = useState(null);
+	const [showCode, setShowCode] = useState(false);
+	const [filter, setFilter] = useState<TTag>(searchParams.get('filter') ? searchParams.get('filter') as TTag : 'all');
+	const [searchItem, setSearchItem] = useState('');
+	const [addUserModal, setAddUserModal] = useState(false);
+	const [list, setList] = useState<IShader[] | null>(null);
 
-        <div className='w-full text-center md:w-3/5'>
-          <View className='flex h-96 w-full flex-col items-center justify-center'>
-            <Suspense fallback={null}>
-              <Logo route='/blob' scale={0.6} position={[0, 0, 0]} />
-              <Common />
-            </Suspense>
-          </View>
-        </div>
-      </div>
+	const getFilteredShaders = () => {
+		if (!list) return [];
+		if (filter === 'all') {
+			return list;
+		}
+		return list.filter((shader) => shader.tags?.includes(filter));
+	}
 
-      <div className='mx-auto flex w-full flex-col flex-wrap items-center p-12 md:flex-row  lg:w-4/5'>
-        {/* first row */}
-        <div className='relative h-48 w-full py-6 sm:w-1/2 md:my-12 md:mb-40'>
-          <h2 className='mb-3 text-3xl font-bold leading-none text-gray-800'>Events are propagated</h2>
-          <p className='mb-8 text-gray-600'>Drag, scroll, pinch, and rotate the canvas to explore the 3D scene.</p>
-        </div>
-        <div className='relative my-12 h-48 w-full py-6 sm:w-1/2 md:mb-40'>
-          <View orbit className='relative h-full  sm:h-48 sm:w-full'>
-            <Suspense fallback={null}>
-              <Dog scale={2} position={[0, -1.6, 0]} rotation={[0.0, -0.3, 0]} />
-              <Common color={'lightpink'} />
-            </Suspense>
-          </View>
-        </div>
-        {/* second row */}
-        <div className='relative my-12 h-48 w-full py-6 sm:w-1/2 md:mb-40'>
-          <View orbit className='relative h-full animate-bounce sm:h-48 sm:w-full'>
-            <Suspense fallback={null}>
-              <Duck route='/blob' scale={2} position={[0, -1.6, 0]} />
-              <Common color={'lightblue'} />
-            </Suspense>
-          </View>
-        </div>
-        <div className='w-full p-6 sm:w-1/2'>
-          <h2 className='mb-3 text-3xl font-bold leading-none text-gray-800'>Dom and 3D are synchronized</h2>
-          <p className='mb-8 text-gray-600'>
-            3D Divs are renderer through the View component. It uses gl.scissor to cut the viewport into segments. You
-            tie a view to a tracking div which then controls the position and bounds of the viewport. This allows you to
-            have multiple views with a single, performant canvas. These views will follow their tracking elements,
-            scroll along, resize, etc.
-          </p>
-        </div>
-      </div>
-    </>
-  )
+	const handleInputChange = (e) => {
+		const searchTerm = e.target.value;
+		setSearchItem(searchTerm)
+	}
+
+	const filterShaders = (filter: TTag) => {
+		router.push('?filter=' + filter);
+		setFilter(filter);
+	}
+
+	const retrieveShaders = async () => {
+		const response = await fetch('/api/get-shaders');
+		const data = await response.json();
+		setList(data.data.reverse());
+		if (process.env.NODE_ENV === 'development') {
+			console.log("data", data.data);
+		}
+	}
+
+	useEffect(() => {
+		const filter = searchParams.get('filter');
+		if (filter) {
+			setFilter(filter as TTag);
+		}
+	}, [searchParams])
+
+	useEffect(() => {
+		if (!addUserModal && list !== null) {
+			retrieveShaders();
+		}
+	}, [addUserModal])
+
+	useEffect(() => {
+		retrieveShaders();
+	}, [])
+
+	return (
+		<div className='relative mx-auto my-4 w-full max-w-[960px]'>
+			<div className='withBorder rounded-md px-6 py-4 shadow'>
+				<h1 className='text-xl font-bold'>Shaders collection</h1>
+				<p>Feel free to use them anywhere, anytime.</p>
+				<p>If you use them, I would love to see how and where ! Please send me a message on <a href={"https://www.linkedin.com/in/maelatzmal/"}>linkedin</a> with your project <span className='fa fa-heart'></span></p>
+				<p>Made over time by&nbsp;<a href={"https://www.linkedin.com/in/maelatzmal/"}>Maël, a french developer, updated as soon as I create a new one (last update {!!list && new Date(list[0].createdAt).toLocaleDateString()})</a></p>
+			</div>
+
+			<div className={`withBorder mt-4 w-full rounded-md px-6 py-4 shadow`}>
+				<input
+					type="text"
+					value={searchItem}
+					onChange={handleInputChange}
+					placeholder='Type to search'
+					className='withBorder bg-dark rounded-md px-2 py-1'
+				/>
+			</div>
+
+			<div className={`withBorder mt-4 w-full rounded-md p-4 shadow`}>
+				<div className='flex gap-2 px-2'>
+					<span className='py-1'>Filter by tags</span>
+					{tags.map((tag: TTag, ti: number) => (
+						<button
+							key={`tag-${ti}`}
+							onClick={() => filterShaders(tag)}
+							className={`filterTag rounded-md ${tag == filter ? 'active' : ''} px-2 py-1`}>
+							{tag}
+						</button>
+					))}
+				</div>
+				{!!list && <p className='mt-2 px-2 text-sm italic'>{getFilteredShaders().length} shader{getFilteredShaders().length > 1 ? 's' : ''} found</p>}
+				<div className='mt-2 flex flex-wrap'>
+					{getFilteredShaders().map((props: IShader, li: number) => (
+						<div key={`canva-${li}`} className='aspect-square w-1/3 p-2'>
+							<Canva props={{ ...props, canvaIdx: li }} />
+						</div>
+					))}
+				</div>
+			</div>
+
+			{!!selectedItem &&
+				<div className='fixed left-0 top-0 z-50 size-full bg-slate-900'>
+					<div className='absolute right-2 top-2 flex gap-2'>
+						<button className='rounded-md bg-white p-2 shadow-md' onClick={() => setShowCode(!showCode)}>{!!showCode && 'x'} Show code</button>
+						<button className='rounded-md bg-white p-2 shadow-md' onClick={() => setSelectedItem(null)}>Close</button>
+					</div>
+					<div>
+					</div>
+				</div>
+			}
+
+			<ThemeToggle />
+
+			{process.env.NODE_ENV === 'development' &&
+				<>
+					<div className='fixed bottom-2 left-2 '>
+						<button onClick={() => setAddUserModal(true)} className='rounded-md bg-white p-2 text-slate-900'>Add shader</button>
+					</div>
+					{addUserModal && <AddShader setAddUserModal={setAddUserModal} />}
+				</>
+			}
+		</div>
+	)
 }

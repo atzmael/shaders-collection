@@ -12,35 +12,13 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 })
 
 const nextConfig = {
-  // uncomment the following snippet if using styled components
-  // compiler: {
-  //   styledComponents: true,
-  // },
-  reactStrictMode: true, // Recommended for the `pages` directory, default in `app`.
+  reactStrictMode: true,
   images: {},
-  webpack(config, { isServer }) {
-    if (!isServer) {
-      // We're in the browser build, so we can safely exclude the sharp module
-      config.externals.push('sharp')
-    }
-    // audio support
+  webpack(config) {
     config.module.rules.push({
-      test: /\.(ogg|mp3|wav|mpe?g)$/i,
-      exclude: config.exclude,
-      use: [
-        {
-          loader: require.resolve('url-loader'),
-          options: {
-            limit: config.inlineImageLimit,
-            fallback: require.resolve('file-loader'),
-            publicPath: `${config.assetPrefix}/_next/static/images/`,
-            outputPath: `${isServer ? '../' : ''}static/images/`,
-            name: '[name]-[hash].[ext]',
-            esModule: config.esModule || false,
-          },
-        },
-      ],
-    })
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
 
     // shader support
     config.module.rules.push({

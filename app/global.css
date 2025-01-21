@@ -11,9 +11,130 @@
   body,
   #root {
     width: 100%;
-    height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+  }
+}
+
+/* Style par défaut (mode jour) */
+body {
+  background-color: white;
+  color: #0f172a;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+
+  .withBorder {
+    background-color: #f1f5f9;
+
+    & .withBorder {
+      background-color: white;
+    }
+  }
+  .filterTag {
+    background-color: white;
+
+    &::before {
+      background-color: #0f172a;
+    }
+  }
+  a {
+    &::before {
+      background-color: #0f172a;
+    }
+  }
+}
+
+/* Style du mode nuit */
+body.dark-mode {
+  background-color: #0f172a;
+  color: white;
+
+  .withBorder {
+    border: 2px solid #334155;
+    background-color: #1e293b;
+
+    & .withBorder {
+      background-color: #0f172a;
+    }
+  }
+  .filterTag {
+    background-color: #334155;
+
+    &::before {
+      background-color: white;
+    }
+  }
+  a {
+    &::before {
+      background-color: white;
+    }
+  }
+}
+
+a {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    transition: all 0.2s ease;
+    height: 2px;
+    width: 20%;
+  }
+  &:hover {
+    &::before {
+      width: 100%;
+    }
+  }
+}
+
+.filterTag {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    transition: all 0.2s ease;
+    height: 2px;
+    width: 0%;
+    pointer-events: none;
+  }
+  &:hover {
+    &::before {
+      width: 20%;
+    }
+  }
+  &.active {
+    &::before {
+      width: 100% !important;
+    }
+  }
+}
+
+.loader-anim {
+  animation: loader-spin 2s ease-in-out infinite;
+}
+
+@keyframes loader-spin {
+  0% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(120deg);
+  }
+  35% {
+    transform: rotate(120deg);
+  }
+  60% {
+    transform: rotate(240deg);
+  }
+  70% {
+    transform: rotate(240deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }

@@ -1,8 +1,7 @@
-const title = 'React Three Next Starter'
-const url = 'https://react-three-next.vercel.app/'
-const description = 'The easiest and fastest way to create a 3D website using React Three Fiber and NextJS'
-const author = 'Author'
-const twitter = '@pmndrs'
+const title = 'Shaders collection'
+const url = 'https://shaders-collection.vercel.app/'
+const description = 'A small shaders collection to use and re-use'
+const author = 'Maël Maltête'
 
 export default function Head() {
   return (
@@ -53,8 +52,10 @@ export default function Head() {
       Twitter Summary card
         documentation: https://dev.twitter.com/cards/getting-started
         Be sure validate your Twitter card markup on the documentation site. */}
-      <meta name='twitter:card' content='summary' />
-      <meta name='twitter:site' content={twitter} />
+      {/* <meta name='twitter:card' content='summary' />
+      <meta name='twitter:site' content={twitter} /> */}
+
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></link>
     </>
   )
 }
